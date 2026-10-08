@@ -1,0 +1,8 @@
+2026-09-28 16:54:56,490 INFO token 校验已启用（除 /healthz 外需要 Authorization: Bearer）
+2026-09-28 16:54:56,490 INFO 巡检 MCP 服务监听于 http://127.0.0.1:18765（config: /Users/lijiaxuan/code/auto-monitor/config/inspection.toml，日志: /Users/lijiaxuan/code/auto-monitor/logs/server.log）
+2026-09-28 16:55:04,060 INFO 127.0.0.1 GET /healthz -> 200
+2026-09-28 16:55:04,061 INFO 127.0.0.1 GET /reports -> 401
+2026-09-28 16:55:04,061 INFO 127.0.0.1 GET /reports -> 401
+2026-09-28 16:55:04,062 INFO 127.0.0.1 GET /reports -> 200
+2026-09-28 16:55:04,063 INFO 127.0.0.1 POST / -> 401
+2026-09-28 16:55:04,064 INFO 127.0.0.1 POST / -> 200

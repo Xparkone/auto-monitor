@@ -1,0 +1,5 @@
+
+tomli>=2.0.1; python_version < "3.11"
+# 可选。只有 [database].url 使用对应协议时才需要安装：
+# psycopg[binary]>=3.1
+# pymysql>=1.1
