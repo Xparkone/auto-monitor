@@ -1,0 +1,81 @@
+# 自动巡检平台配置
+# 相对路径（report_dir / log_dir）基于项目根目录解析。
+
+[server]
+url = "http://127.0.0.1:8765"          # MCP 服务地址：工作流通过它调用工具
+# 启用 HTTPS：url 和下面的 base_url 都改成 https://，并同时填写证书和私钥。
+# 重启服务时才会按证书监听。自签证书把 tls_verify 设为 false，公网 CA 证书保持 true。
+# certfile = "certs/server.crt"
+# keyfile = "certs/server.key"
+# tls_verify = false
+# token = "换成只有你知道的一串随机字符"
+# 上面这一行取消注释并填上 token 后，除 /healthz 外都要带请求头 Authorization: Bearer <token>
+# 环境变量 INSPECTION_TOKEN 优先于这里的 token，适合不想把口令写进配置文件的情况
+
+[output]
+report_dir = "reports"                 # 巡检报告输出目录（Markdown）
+log_dir = "logs"                       # 巡检日志输出目录
+base_url = "http://127.0.0.1:8765"     # 拼接报告下载链接（用于 webhook 通知）；HTTPS 时改成 https://你的域名:8765
+
+[thresholds]
+cpu_warn = 80                          # CPU 使用率 >= 80% 记为“注意”
+mem_warn = 80                          # 内存使用率 >= 80% 记为“注意”
+disk_warn = 75                         # 磁盘使用率 >= 75% 记为“注意”
+disk_crit = 90                         # 磁盘使用率 >= 90% 记为“异常”
+load_per_core_warn = 2                 # load1 >= 核数 * 2 记为“注意”
+pod_restart_warn = 5                   # Pod 重启次数 >= 5 记为“注意”
+
+# 服务器清单（可多选；巡检时用 --servers a,b 取子集，不传则全量）
+[[servers]]
+name = "本机"
+host = "127.0.0.1"
+via = "local"                          # local（控制机本身）| ssh（系统 ssh 免密登录）
+mounts = ["/"]                         # 关注的挂载点（根目录 & 关键数据盘）
+
+# 远端主机示例：
+# [[servers]]
+# name = "srv-16"
+# host = "192.168.122.16"
+# via = "ssh"
+# mounts = ["/", "/data"]
+
+# K8s 命名空间清单（可多选；--namespaces ns1,ns2 取子集）
+[[namespaces]]
+name = "default"
+
+# 中间件服务清单：deploy = binary（二进制/systemd）| container（docker）| k8s
+[[services]]
+name = "巡检API"
+host = "127.0.0.1"
+deploy = "binary"
+port = 8765
+process = "mcp_inspect.server"          # binary：systemd 单元名或 pgrep -f 匹配串
+
+# 容器部署示例：
+# [[services]]
+# name = "MySQL"
+# host = "192.168.122.16"
+# deploy = "container"
+# port = 3306
+# container = "mysql"                   # docker 容器名
+
+# K8s 部署示例：
+# [[services]]
+# name = "Redis"
+# host = "192.168.122.16"               # 端口探测目标（可为 Service/clusterIP 入口）
+# deploy = "k8s"
+# port = 6379
+# k8s = { namespace = "middleware", deployment = "redis" }
+
+[webhook.channels]                     # 渠道名 = URL 或 [URL...]；渠道类型在 notifier.py 注册（内置 feishu/wecom/generic，可扩展）
+# feishu = "https://open.feishu.cn/open-apis/bot/v2/hook/xxxx"   # 飞书自定义机器人：消息卡片。安全设置用关键词「巡检」，不要开签名校验
+# wecom = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxx"  # 企业微信群机器人：markdown
+# generic = ["http://example.com/hook"]                          # 通用 JSON 摘要
+# 兼容旧写法：[webhook] 下的 feishu_url / extra_urls 仍可用，会自动折叠到 channels
+
+[database]
+# 留空不入库。环境变量 INSPECTION_DATABASE_URL 优先于这里的 url。
+# url = "sqlite:///data/inspection.db"   # 相对项目根目录，只需 Python 标准库
+# url = "postgresql://user:pass@127.0.0.1:5432/inspection"  # pip install 'psycopg[binary]'
+# url = "mysql://user:pass@127.0.0.1:3306/inspection"        # pip install pymysql
+url = ""

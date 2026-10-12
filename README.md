@@ -188,4 +188,33 @@ def _dingtalk(summary: dict) -> dict:
 
 config 中加 `dingtalk = "https://oapi.dingtalk.com/..."`（位于 `[webhook.channels]`）即生效；未注册的渠道名会在日志里报出而不是静默丢弃。
 
+---
+
+## Go 版本（`go/` 目录）
+
+`go/` 下是本平台的 Go 移植版：单二进制 CLI，功能、配置 schema、HTTP 接口、报告格式与 Python 版一致。
+
+```bash
+cd go && go build -o auto-monitor ./cmd/auto-monitor     # 需要 Go ≥ 1.24
+
+# 1. 在指定目录初始化（生成 config/skills/reports/logs/data，重复执行不覆盖已有文件，--force 强制覆盖）
+./auto-monitor init /path/to/dir
+
+# 2. 启动巡检 MCP 服务（默认 127.0.0.1:8765）
+./auto-monitor server -c /path/to/dir/config/inspection.toml
+
+# 3. 执行巡检（选择参数与 Python 版相同）
+./auto-monitor run -c /path/to/dir/config/inspection.toml \
+    --servers srv-1,srv-16 --namespaces default,middleware \
+    --services MySQL,Redis --sections server-resources,pods --no-notify
+```
+
+三个子命令对应 Python 版的三个入口：`run` ⇔ `inspect_runner.py`，`server` ⇔ `python -m mcp_inspect.server`，`init` 为 Go 版新增。差异点：
+
+- `/inspect` 接口在进程内直接执行巡检（Python 版是 fork 子进程），对外行为一致（600s 超时、同样的 JSON 摘要）。
+- sqlite 驱动为纯 Go 实现（modernc.org/sqlite，无 cgo）；PostgreSQL/MySQL 使用 database/sql 驱动。
+- cron 用法相同：`0 2 * * * cd /path/to/dir && auto-monitor run >> logs/cron.log 2>&1`
+
+Go 版测试：`cd go && go test ./...`（采集解析、阈值判定、sqlite 入库均有覆盖）。
+
 
